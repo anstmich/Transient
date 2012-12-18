@@ -1,10 +1,56 @@
 #:kivy 1.0
-#:import UI Transient_UI_Colors
+
+# Color definitions
+#:set DARK_BG [0.094, 0.098, 0.098, 1.0]
+#:set HEADER_BG [0.12, 0.13, 0.13, 1.0]
+
+# Font definitions
+#:set DAQ_WIDGET_HEADER_PX 16
+
+# Geometry Size Definitions
+#:set HEADER_PADDING 5
+#:set HEADER_HEIGHT 26
+#:set PADDING 5
 
 <DAQWidget>:
+	header_text: '[color=#adaeaf]DAQWidget Default Header[/color]'
+
 	canvas:
 		Color:
-			rgba: UI.UIColors.DARK_BG
+			rgba: DARK_BG
 		Rectangle:
 			pos: self.pos
 			size: self.size
+		Color:
+			rgb: 1,0,0
+		Rectangle:
+			pos: self.vis_pos
+			size: 100,100
+		Color:
+			rgba: HEADER_BG
+		Rectangle:
+			pos: self.pos[0], self.pos[1] + self.height - 24
+			size: self.width, 24
+			texture: self.gradient
+		Color:
+			rgba: 1,1,1,0.075
+		Line:
+			points: 0, self.pos[1]+self.height-HEADER_HEIGHT-0.5, self.width, self.pos[1]+self.height-HEADER_HEIGHT-0.5
+			width: 0.5
+		Color:
+			rgba: 0,0,0,0.5
+		Line:
+			points: 0, self.pos[1]+self.height-HEADER_HEIGHT, self.width, self.pos[1]+self.height-HEADER_HEIGHT
+			width: 0.5
+
+	Label:
+		id: header_label
+		font_size: DAQ_WIDGET_HEADER_PX
+		pos: root.pos[0], root.size[1] + root.pos[1] - DAQ_WIDGET_HEADER_PX - HEADER_PADDING
+		text: root.header_text
+		markup: True
+		size: root.width, DAQ_WIDGET_HEADER_PX
+		halign: 'left'
+
+
+#DO THIS: Mimic top bar gradient! Also test extending DAQWidget
