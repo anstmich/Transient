@@ -4,15 +4,25 @@
 #:set MAIN_BG [0.064, 0.068, 0.068, 1.0]
 #:set DARK_BG [0.13, 0.135, 0.135, 1.0]
 #:set HEADER_BG [0.16, 0.165, 0.165, 1.0]
+#:set AXES_BG [0.1, 0.105, 0.105, 1]
+#:set OUTLINE [0.175,0.175,0.175,1.0]
 
 # Font definitions
 #:set DAQ_WIDGET_HEADER_PX 16
+#:set NUM_DISP_UNITS_PX 24
 
 # Geometry Size Definitions
 #:set HEADER_PADDING 5
 #:set HEADER_HEIGHT 26
 #:set PADDING 5.0
 
+<EmphScreen>:
+	canvas:
+		Color:
+			rgba: 0,0,0,0.5
+		Rectangle:
+			pos: self.pos
+			size: self.size
 <Container>:
 	canvas:
 		Color: 
@@ -22,7 +32,6 @@
 			size: self.size
 <DAQWidget>:
 	header_text: '[color=#adaeaf]DAQWidget Default Header[/color]'
-	diffpos: 0,0
 	canvas:
 		Color:
 			rgba: [0,0,0,0.2]
@@ -30,7 +39,7 @@
 			pos: [self.pos[0] - 2, self.pos[1] - 2]
 			size: [self.size[0] + 4, self.size[1] + 4]
 		Color:
-			rgba: [1,1,1,0.175]
+			rgba: OUTLINE
 		Rectangle:
 			pos: [self.pos[0] - 1, self.pos[1] - 1]
 			size: [self.size[0] + 2, self.size[1] + 2]
@@ -66,4 +75,30 @@
 		halign: 'left'
 
 
-#DO THIS: Mimic top bar gradient! Also test extending DAQWidget
+<NumericalDisplay>:
+	number_text: 'NAN'
+	units: 'NoneUnits'
+	Label:
+		id: units_label
+		font_size: NUM_DISP_UNITS_PX
+		text: root.units
+		height: NUM_DISP_UNITS_PX
+		pos: (root.width - self.width)/2.0 + root.x, root.y + 5*PADDING
+	Label:
+		id: number_label
+		text: root.number_text
+		font_size: root.width/(root.digits) if root.width < root.height else root.height/(root.digits)
+		#text_size: root.width - 2*PADDING, root.height - 2*PADDING - HEADER_HEIGHT
+		center_x: root.x + root.width/2.0
+		center_y: root.y + root.height/2.0
+
+<PointDisplay>:
+	x_label: 'NAN'
+	y_label: 'NAN'
+	label: point_label
+	Label:
+		id: point_label
+		text: ''.join([root.x_label, ', ', root.y_label])
+		font_size: 10
+		pos: root.pos
+		size: self.texture_size
