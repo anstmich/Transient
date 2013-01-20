@@ -1,5 +1,4 @@
-#include <map>
-#include <iostream>
+#include <map> 
 #include <string>
 #include <list>
 #include <boost/shared_ptr.hpp>
@@ -73,8 +72,8 @@ private:
 class AsciiParser : public Parser
 {
 public:
-	int add_token(int type, std::string name, unsigned char delimiter);
-	int parse_string(char* str, int slen);
+	virtual int add_token(int type, std::string name, std::string delimiter);
+	virtual int parse_string(char* str, int slen);
 
 private:
 	std::string format;

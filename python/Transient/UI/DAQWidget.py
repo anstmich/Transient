@@ -18,7 +18,7 @@ from Transient.DataRep import OneVector, TwoVector
 from Transient.UI.Colors import ColorQueue
 
 # c++ modules
-from Transient.DAQWidget_Utils import calculate_points
+from Transient.Utils.DAQWidget_Utils import calculate_points
 
 # constants
 PADDING = 5

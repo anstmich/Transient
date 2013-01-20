@@ -105,6 +105,7 @@ if __name__ == "__main__":
 	#Config.set('graphics', 'height', disp_h)
 	#Config.set('graphics', 'fullscreen', 'auto') # auto seems broken with gnome 3
 	Config.set('graphics', 'fullscreen', 'False')
+	Config.set('graphics', 'multisamples', 0)
 	transient = TransientApp()
 
 	transient.run()
