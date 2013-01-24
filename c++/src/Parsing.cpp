@@ -208,6 +208,7 @@ BOOST_PYTHON_MODULE(ParsingBackend)
 		.value("DOUBLE", DOUBLE)
 		.value("FLOAT", FLOAT)
 		.value("STRING", STRING)
+		.value("NUMBER", NUMBER) // number is a generic type to be determined by the front end
 	;
 	class_<Parser>("Parser")
 		.def("get_double", &Parser::get_double)
