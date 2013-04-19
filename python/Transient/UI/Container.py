@@ -146,7 +146,7 @@ class Container(Widget):
 
 
 class BoxContainer(Container):
-	def __init__(self, nbox, padding=10, orientation='horizontal', **kwargs):
+	def __init__(self, nbox, padding=6, orientation='horizontal', **kwargs):
 		super(BoxContainer, self).__init__(**kwargs)
 		self.nbox = nbox
 		self.padding = padding

@@ -4,6 +4,7 @@ from kivy.lang import Builder
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.widget import Widget
+from kivy.graphics import Rectangle
 
 from Transient.UI.DAQWidget import DAQWidget, NumericalDisplay, Grid, Axes, PlotTrace2D, Plot, PlotBehavior
 from Transient.UI.Container import Stage, Container, BoxContainer
@@ -11,6 +12,9 @@ from Transient.UI.Container import Stage, Container, BoxContainer
 from math import sin, cos
 from random import random
 
+class test_rect(Widget):
+	def get_emph_size(self, max_w, max_h):
+		return (max_w*0.9, max_h*0.9)
 
 
 class TransientApp(App):
@@ -21,14 +25,14 @@ class TransientApp(App):
 		self.numdisp.set_value(self.num)
 
 		self._x += 2
-		self.plot.append_value(self._x/10.0, sin(self._x/10.0 + 0.1*random()), 0)
-		self.plot.append_value(self._x/10.0, sin(self._x/10.0 + 0.1*random())*cos(self._x/10.0 + 0.1*random()), 1)
+		#self.plot.append_value(self._x/10.0, sin(self._x/10.0 + 0.1*random()), 0)
+		#self.plot.append_value(self._x/10.0, sin(self._x/10.0 + 0.1*random())*cos(self._x/10.0 + 0.1*random()), 1)
 		#self.tizzle.autoscale()
-		self.plot.refresh(0)
-		self.plot.refresh(1)
+		#self.plot.refresh(0)
+		#self.plot.refresh(1)
 
 		self.count += 1
-		if(self.count % 1000 == 0):
+		if(self.count % 250 == 0):
 			print self.count, Clock.get_rfps()
 
 	def build(self):
@@ -41,6 +45,8 @@ class TransientApp(App):
 		box2 = BoxContainer(2, orientation='vertical')
 		box3 = BoxContainer(2)
 		box4 = BoxContainer(2)
+
+		button = test_rect()
 
 		box1.set_box_sizes([0.6,0.4])
 
@@ -62,19 +68,17 @@ class TransientApp(App):
 		self.plot.set_xlabel('Time')
 		self.plot.set_ylabel('RPM')
 		self.plot.set_behavior(PlotBehavior.FIXED)
-		self.plot.set_x_range(0, 100.0)
+		self.plot.set_x_range(0, 50.0)
 		self.plot.set_y_range(-1.0,1)
 
-		grid = Axes()
-		grid.set_x_label('This is a test')
-		grid.set_y_label('This is a test')
 		dwidget1.set_widget(self.plot)
 
-		grid2 = Axes()
-		grid2.set_x_label('This is a test')
-		grid2.set_y_label('This is a test')
-		grid2.set_y_divs(6)
-		grid2.set_x_divs(12)
+		grid2 = Plot(2)
+		grid2.set_xlabel('Time')
+		grid2.set_ylabel('Speed (mph)')
+		grid2.set_behavior(PlotBehavior.FIXED)
+		grid2.set_x_range(0, 50.0)
+		grid2.set_y_range(-1.0,1)
 
 		dwidget2.set_widget(grid2)
 
