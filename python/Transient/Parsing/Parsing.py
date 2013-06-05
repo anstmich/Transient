@@ -1,4 +1,4 @@
-from ParsingBackend import AsciiParser, DataTypes
+from Backend import AsciiParser, DataTypes
 import re
 
 def to_data_type(string):

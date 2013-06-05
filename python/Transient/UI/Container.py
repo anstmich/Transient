@@ -57,13 +57,14 @@ class Stage(Layout):
 	def on_touch_down(self, event):
 		if(not self.emph_view):
 			for c in self.children:
-				if(c.collide_point(event.x, event.y)):
+				if(c.collide_point(*event.pos)):
 					self.emph_widget = c
 
 					# pass event to child
 					if(not c.on_touch_down(event)):
 						self.down_event = True
-					
+					else:
+						self.down_event = False
 					return True
 
 		else:
@@ -104,9 +105,9 @@ class Stage(Layout):
 					e_size = c.get_emph_size(width, height)
 
 					e_pos = [x + (width - e_size[0])/2.0, y + (height - e_size[1])/2.0]
-					self.scale_anim = Animation(pos=e_pos, size=e_size, duration=0.15, t='in_sine')
+					self.scale_anim = Animation(pos=e_pos, size=e_size, duration=0.1, t='in_sine')
 					self.emph_screen.opacity = 0
-					self.darken_anim = Animation(opacity=1.0, duration=0.15, t='in_sine')
+					self.darken_anim = Animation(opacity=1.0, duration=0.1, t='in_sine')
 					
 					self.scale_anim.start(c)
 					self.darken_anim.start(self.emph_screen)

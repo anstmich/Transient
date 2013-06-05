@@ -6,10 +6,13 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.widget import Widget
 from kivy.graphics import Rectangle
 
-from Transient.UI.DAQWidget import DAQWidget, NumericalDisplay, Grid, Axes, PlotTrace2D, Plot, PlotBehavior
+from Transient.UI.DAQWidget import DAQWidget, MyWidget, NumericalDisplay
 from Transient.UI.Container import Stage, Container, BoxContainer
-
-from math import sin, cos
+from Transient.UI.Widgets.PlotWidget import Grid, Plot, PlotBehavior
+from Transient.UI.Widgets.PositionTracker import PositionTracker
+from Transient.Backend import SerialDevice, Backend
+from Transient.ParseHelper import AsciiFormat
+from math import sin, cos, pi
 from random import random
 
 class test_rect(Widget):
@@ -19,21 +22,33 @@ class test_rect(Widget):
 
 class TransientApp(App):
 
+	backend = None
+	parser = None
+	device = None
+
 	def test_num_display(self, dt):
 		self.num += 0.1
-
-		self.numdisp.set_value(self.num)
-
-		self._x += 2
-		#self.plot.append_value(self._x/10.0, sin(self._x/10.0 + 0.1*random()), 0)
-		#self.plot.append_value(self._x/10.0, sin(self._x/10.0 + 0.1*random())*cos(self._x/10.0 + 0.1*random()), 1)
-		#self.tizzle.autoscale()
-		#self.plot.refresh(0)
-		#self.plot.refresh(1)
-
-		self.count += 1
+		
+		#self.posTrack.update_pos((1+self.count*0.1)*cos(self.count/(2*pi)), (1+self.count*0.1)*sin(self.count/(2*pi)))
+		self.count += 0.125
 		if(self.count % 250 == 0):
-			print self.count, Clock.get_rfps()
+		    print self.count, Clock.get_rfps()
+
+		lon = []
+		lat = []
+		speed = []
+		erpm = []
+		b1 = []
+		TransientApp.backend.get_doubles('long', lon)
+		TransientApp.backend.get_doubles('lat', lat)
+		TransientApp.backend.get_doubles('speed', speed)
+		TransientApp.backend.get_doubles('erpm', erpm)
+		TransientApp.backend.get_doubles('b1', b1)
+		if(len(lon) > 0 and len(lat) > 0 and len(speed) > 0 and len(erpm) > 0 and len(b1) > 0):
+			self.posTrack.update_pos(lon[-1], lat[-1])
+			self.erpm.set_value(erpm[-1])
+			self.speed.set_value(speed[-1])
+			self.emerg.set_value(b1[-1])
 
 	def build(self):
 		self.count = 0
@@ -41,61 +56,55 @@ class TransientApp(App):
 		Builder.load_file('python/Transient/UI/Transient_UI.kv')
 		
 		mainlayout = Stage()
-		box1 = BoxContainer(2)
-		box2 = BoxContainer(2, orientation='vertical')
-		box3 = BoxContainer(2)
-		box4 = BoxContainer(2)
+		box1 = BoxContainer(2, orientation='vertical')
+		box2 = BoxContainer(3)
 
 		button = test_rect()
 
-		box1.set_box_sizes([0.6,0.4])
+		box1.set_box_sizes([0.75,0.25])
+		box2.set_box_sizes([0.34,0.33,0.33])
 
-		dwidget1 = DAQWidget()
-		dwidget1.header_text = 'Widget 1'
-		dwidget2 = DAQWidget()
-		dwidget2.header_text = 'Widget 2'
-		dwidget3 = NumericalDisplay()
-		dwidget3.set_units('Accel Time')
-		dwidget3.header_text = 'Widget 3'
-		dwidget4 = DAQWidget()
-		dwidget4.header_text = 'Widget 4'
+		self.erpm = NumericalDisplay()
+		self.erpm.header_text = 'Engine RPM'
+		self.erpm.set_units('RPM')
+		self.erpm.set_value(0)
+		
+		self.speed = NumericalDisplay()
+		self.speed.header_text = 'Speed'
+		self.speed.set_units('MPH')
+		self.speed.set_value(0)
 
-		self.num = 0
-		self._x = 0
-		self.numdisp = dwidget3
+		self.emerg = NumericalDisplay()
+		self.emerg.header_text = 'Emergency Button'
+		self.emerg.set_units('State')
+		self.emerg.set_value(0)
 
-		self.plot = Plot(2)
-		self.plot.set_xlabel('Time')
-		self.plot.set_ylabel('RPM')
-		self.plot.set_behavior(PlotBehavior.FIXED)
-		self.plot.set_x_range(0, 50.0)
-		self.plot.set_y_range(-1.0,1)
+		self.posTrack = PositionTracker()
+		self.posTrack.header_text = 'GPS Tracking'
 
-		dwidget1.set_widget(self.plot)
-
-		grid2 = Plot(2)
-		grid2.set_xlabel('Time')
-		grid2.set_ylabel('Speed (mph)')
-		grid2.set_behavior(PlotBehavior.FIXED)
-		grid2.set_x_range(0, 50.0)
-		grid2.set_y_range(-1.0,1)
-
-		dwidget2.set_widget(grid2)
-
-		box3.add_member(dwidget3)
-		box3.add_member(dwidget4)
-
-		box2.add_member(dwidget2)
-		box2.add_member(box3)
-		box2.set_box_sizes([0.7,0.3])
-
+		box2.add_member(self.speed)
+		box2.add_member(self.erpm)
+		box2.add_member(self.emerg)
+		box1.add_member(self.posTrack)
 		box1.add_member(box2)
-		box1.add_member(dwidget1)
+
+        # set up  the backend
+		TransientApp.backend = Backend()
+		TransientApp.device = SerialDevice('/dev/pts/5', 115200)
+		tp = AsciiFormat('<START=$><time=NUMBER>,<long=NUMBER>,<longdir=UCHAR>,<lat=NUMBER>,<latdir=UCHAR>,<hdop=NUMBER>,<statud=UCHAR>,<speed=NUMBER>,<heading=NUMBER>,<erpm=NUMBER>,<wrpm=NUMBER>,<b1=NUMBER>,<b2=NUMBER>,<b3=NUMBER><END=\n>') 
+		TransientApp.parser = tp.parser
+
+		TransientApp.backend.set_parser(TransientApp.parser)
+		TransientApp.backend.set_device(TransientApp.device)
 
 		mainlayout.add_container(box1)
+		self.num = 0
+		
+		Clock.schedule_interval(self.test_num_display, 1.0/2.0)
 
-		Clock.schedule_interval(self.test_num_display, 1.0/30)
-	
+		# start the backend
+		TransientApp.backend.start()
+
 		return mainlayout
 
 if __name__ == "__main__":
@@ -109,7 +118,9 @@ if __name__ == "__main__":
 	#Config.set('graphics', 'height', disp_h)
 	#Config.set('graphics', 'fullscreen', 'auto') # auto seems broken with gnome 3
 	Config.set('graphics', 'fullscreen', 'False')
-	Config.set('graphics', 'multisamples', 0)
+	Config.set('graphics', 'multisamples', '8')
 	transient = TransientApp()
 
 	transient.run()
+	transient.backend.stop()
+	#transient.backend.finish()

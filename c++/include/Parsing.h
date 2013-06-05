@@ -6,6 +6,8 @@
 #ifndef __PARSING_H__
 #define __PARSING_H__
 
+typedef std::list<std::pair<std::string, int> > ValueTypeList;
+
 // Parse token 
 class ParseToken
 {
@@ -44,6 +46,10 @@ public:
 	int get_int(std::string name);
 	unsigned char get_uchar(std::string name);
 
+    ValueTypeList expose_structure();
+
+    virtual int parse(unsigned char* src, int slen) = 0;
+
 protected:
 	int append_value(int value, std::string name);
 	int append_value(double value, std::string name);
@@ -73,7 +79,7 @@ class AsciiParser : public Parser
 {
 public:
 	int add_token(int type, std::string name, std::string delimiter);
-	int parse_string(char* str, int slen);
+	int parse(unsigned char* str, int slen);
 
 private:
 	std::string format;

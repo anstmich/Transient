@@ -12,12 +12,137 @@
 #include <libusb-1.0/libusb.h>
 #include "Device.h"
 
-#define __PYTHONIFY__
+//#define __PYTHONIFY__
 
 #ifdef __PYTHONIFY__
 #include <boost/python.hpp>
 using namespace boost::python;
 #endif
+
+bool SerialDevice::incoming_;
+
+SerialDevice::SerialDevice()
+{
+    setup();
+}
+
+SerialDevice::SerialDevice(const char* port, int baud)
+{
+    setup(port, baud);
+}
+
+SerialDevice::~SerialDevice()
+{
+    cleanup();
+}
+
+int SerialDevice::setup()
+{
+    return setup("/dev/ttyUSB0", 9600);
+}
+
+int SerialDevice::setup(const char* port, int baud)
+{
+    // set up nonblocking readwrite transfer
+    ser_ = open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+    if(ser_ < 0) {
+        perror(port);
+        exit(DEVERR_FAILED_TO_OPEN);
+    }
+    
+    // set up signal (interrupt) handler
+    saio_.sa_handler = SerialDevice::signal_handler_;
+    //saio.sa_mask = 0; // not sure what this is for, but doesnt work
+    saio_.sa_flags = 0;
+    saio_.sa_restorer = NULL;
+    sigaction(SIGIO,&saio_,NULL);
+
+    // allow the process to receive interrupts
+    fcntl(ser_, F_SETOWN, getpid());
+
+    // make it asynchronous
+    fcntl(ser_, F_SETFL, FASYNC);
+    
+    // save current port settings to be restored upon completion
+    tcgetattr(ser_,&oldtio_); 
+
+    // set up the new port attributes 
+    tio_.c_cflag = get_baud_(baud) | CRTSCTS | CS8 | CLOCAL | CREAD;
+    tio_.c_iflag = IGNPAR | ICRNL;
+    tio_.c_oflag = 0;
+    tio_.c_lflag = ICANON;
+    tio_.c_cc[VMIN]=1;
+    tio_.c_cc[VTIME]=0;
+    tcflush(ser_, TCIFLUSH);
+    tcsetattr(ser_,TCSANOW,&tio_);
+     
+}
+
+int SerialDevice::poll(unsigned char* buff)
+{
+    ssize_t len=0;
+    if(incoming_) {
+        len = read(ser_, buff, MAX_BYTES);
+        // if multiple ports are open, dont want to prevent another from getting the interrupt
+        if(len >= 0)
+            incoming_ = false;
+    }
+
+    return len;
+}
+
+int SerialDevice::cleanup()
+{
+    tcsetattr(ser_,TCSANOW,&oldtio_);
+
+}
+
+speed_t SerialDevice::get_baud_(int baud)
+{
+    switch(baud) {
+        case 0:
+            return B0;
+            break;
+        case 50:
+            return B50;
+            break;
+        case 75:
+            return B75;
+            break;
+        case 110:
+            return B110;
+            break;
+        case 9600:
+            return B9600;
+            break;
+        case 19200:
+            return B19200;
+            break;
+        case 38400:
+            return B38400;
+            break;
+        case 57600:
+            return B57600;
+            break;
+        case 115200:
+            return B115200;
+            break;
+        case 230400:
+            return B230400;
+            break;
+        default:
+            fprintf(stderr, "Error: Unknown baudrate %d\n", baud);
+            exit(DEVERR_UNKNOWN_BAUD);
+    }
+
+}
+
+void SerialDevice::signal_handler_(int status)
+{
+    incoming_ = true;
+}
+
 
 /**
  * NOTE: Used internally. Not likely used by client programmer.
@@ -168,7 +293,7 @@ void USBDevice::set_vendor_id(int id)
     vendorID_ = id;
 }
 
-int USBDevice::read_device(unsigned char* str)
+int USBDevice::poll(unsigned char* str)
 {
     return bulk_get(str, INPUT_BUFFER_LEN);
 }
@@ -185,7 +310,7 @@ BOOST_PYTHON_MODULE(DeviceBackend)
     ;
     class_<USBDevice>("USBDevice")
         .def("setup", &USBDevice::setup)
-        .def("read_device", &USBDevice::read_device)
+        .def("poll", &USBDevice::poll)
         .def("bulk_get", &USBDevice::bulk_get)
         .def("bulk_send", &USBDevice::bulk_send)
         .def("cleanup", &USBDevice::cleanup)

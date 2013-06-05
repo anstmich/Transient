@@ -1,0 +1,37 @@
+# location of the Python header files
+
+PYTHON = /usr/include/python2.7
+
+# location of the Boost Python include files and library
+
+BOOST_INC = /usr/include
+BOOST_LIB = /usr/lib
+
+# compile mesh classes
+TARGET = Backend
+MODULE_OUTPUT = ./Backend
+
+$(TARGET).so: Device.o Parsing.o RPI.o $(TARGET).o
+	g++ -shared -Wl,--export-dynamic \
+	RPI.o $(TARGET).o -L$(BOOST_LIB) -lboost_python -lboost_system -lboost_thread -lusb-1.0 \
+	-L/usr/lib/python2.7/config -lpython2.7 \
+	-o $(MODULE_OUTPUT).so
+
+RPI.o: RPI.cpp
+	g++ -I$(PYTHON) -I$(BOOST_INC) -c RPI.cpp -o RPI.o -fPIC
+
+Device.o: Device.cpp
+	g++ -I$(PYTHON) -I$(BOOST_INC) -c Device.cpp -o Device.o -fPIC
+
+Parsing.o: Parsing.cpp
+	g++ -I$(PYTHON) -I$(BOOST_INC) -c Parsing.cpp -o Parsing.o -fPIC
+
+$(TARGET).o: $(TARGET).cpp
+	g++ -I$(PYTHON) -I$(BOOST_INC) -c $(TARGET).cpp -o $(TARGET).o -fPIC 
+
+
+clean:
+	rm *.o *.so
+
+test:
+	g++ -c Device.cpp -Wall -g -o Device.o -std=c++0x

@@ -1,15 +1,31 @@
 #include "Parsing.h"
 #include <cstdlib>
+#include <cstdio>
 #include <cstring>
-
-#define __PYTHONIFY__
-
-#ifdef __PYTHONIFY__
-#include <boost/python.hpp>
-using namespace boost::python;
-#endif
+#include <stdint.h>
 
 /******************** Parser Definitions *********************/
+
+ValueTypeList Parser::expose_structure()
+{
+    ValueTypeList list;
+
+    std::map<std::string, double>::iterator itdoub;
+    for(itdoub = double_map_.begin(); itdoub != double_map_.end(); itdoub++) 
+        list.push_back(std::pair<std::string, int>(itdoub->first, DOUBLE));
+
+    std::map<std::string, int>::iterator itint;
+    for(itint = int_map_.begin(); itint != int_map_.end(); itint++) 
+        list.push_back(std::pair<std::string, int>(itint->first, INT));
+
+
+    std::map<std::string, unsigned char>::iterator ituc;
+    for(ituc = uchar_map_.begin(); ituc != uchar_map_.end(); ituc++) 
+        list.push_back(std::pair<std::string, int>(ituc->first, UCHAR)); 
+
+    return list;
+}
+
 int Parser::append_value(int value, std::string name)
 {
 	int_map_[name] = value;
@@ -128,10 +144,10 @@ int AsciiParser::add_token(int type, std::string name, std::string delimiter)
 	
 }
 
-int AsciiParser::parse_string(char* str, int slen)
+int AsciiParser::parse(unsigned char* str, int slen)
 {
 	TokenList::iterator it;
-	char* tok, *delim;
+	unsigned char* tok, *delim;
 	char num[64]; // we dont expect any number to be more than 64 digits
 	int rlen=slen, count = 0;
 	uintptr_t tok_len = 0; // PLATFORM DEPENDENT!! 32bit addressing vs 64bit!
@@ -139,7 +155,7 @@ int AsciiParser::parse_string(char* str, int slen)
 
 	// preparse to check integrity
 	it = parse_tokens_.begin();
-	while( (delim = static_cast<char *>(memchr(tok, (*it)->delimiter, rlen))) != NULL)
+	while( (delim = static_cast<unsigned char *>(memchr(tok, (*it)->delimiter, rlen))) != NULL)
 	{
 		count++;
 		if(delim - str == 0)
@@ -162,7 +178,7 @@ int AsciiParser::parse_string(char* str, int slen)
 	tok = str;
 	for(it=parse_tokens_.begin(); it != parse_tokens_.end(); it++)
 	{
-		delim = static_cast<char *>(memchr(tok, (*it)->delimiter, rlen));
+		delim = static_cast<unsigned char *>(memchr(tok, (*it)->delimiter, rlen));
 		if(delim == NULL)
 			return ASCIIPARSE_INCOMPLETE_STRING;
 
@@ -188,39 +204,5 @@ int AsciiParser::parse_string(char* str, int slen)
 
 	}
 
-	return ASCIIPARSE_SUCCESS;
+	return PARSER_SUCCESS;
 }
-
-/****************** Expose AsciiParser to Python *******************/
-#ifdef __PYTHONIFY__
-BOOST_PYTHON_MODULE(ParsingBackend)
-{
-	class_<ParseToken>("ParseToken");
-	enum_<DataTypes>("DataTypes")
-		.value("SHORT", SHORT)
-		.value("LONG", LONG)
-		.value("INT", INT)
-		.value("USHORT", USHORT)
-		.value("ULONG", ULONG)
-		.value("UINT", UINT)
-		.value("UCHAR", UCHAR)
-		.value("CHAR", CHAR)
-		.value("DOUBLE", DOUBLE)
-		.value("FLOAT", FLOAT)
-		.value("STRING", STRING)
-		.value("NUMBER", NUMBER) // number is a generic type to be determined by the front end
-	;
-	class_<Parser>("Parser")
-		.def("get_double", &Parser::get_double)
-		.def("get_int", &Parser::get_int)
-		.def("get_uchar", &Parser::get_uchar)
-	;
-	class_<AsciiParser>("AsciiParser")
-		.def("add_token", &AsciiParser::add_token)
-		.def("parse_string", &AsciiParser::parse_string)
-		.def("get_double", &AsciiParser::get_double)
-		.def("get_int", &AsciiParser::get_int)
-		.def("get_uchar", &AsciiParser::get_uchar)
-	;
-}
-#endif

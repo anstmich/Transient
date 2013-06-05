@@ -12,12 +12,119 @@
 #include <libusb-1.0/libusb.h>
 #include "Device.h"
 
-#define __PYTHONIFY__
+/******** Empty Device implementations *********/
 
-#ifdef __PYTHONIFY__
-#include <boost/python.hpp>
-using namespace boost::python;
-#endif
+bool SerialDevice::incoming_;
+
+SerialDevice::SerialDevice()
+{
+    port_ = "/dev/ttyUSB0";
+    baud_ = 9600;
+}
+
+SerialDevice::SerialDevice(const char* port, int baud)
+{
+    port_ = port;
+    baud_ = baud;
+}
+
+SerialDevice::~SerialDevice()
+{
+    cleanup();
+}
+
+int SerialDevice::setup()
+{
+    return setup(port_.c_str(), baud_);
+}
+
+int SerialDevice::setup(const char* port, int baud)
+{
+    // set up nonblocking readwrite transfer
+    ser_ = open(port, O_RDWR | O_NOCTTY);
+
+    if(ser_ < 0) {
+        perror(port);
+        exit(DEVERR_FAILED_TO_OPEN);
+    }
+    
+    // save current port settings to be restored upon completion
+    tcgetattr(ser_,&oldtio_); 
+    bzero(&tio_, sizeof(tio_));
+
+    // set up the new port attributes 
+    tio_.c_cflag = get_baud_(baud) | CRTSCTS | CS8 | CLOCAL | CREAD;
+    tio_.c_iflag = IGNPAR | ICRNL;
+    tio_.c_oflag = 0;
+    tio_.c_lflag = ICANON;
+    tio_.c_cc[VMIN]=1;
+    tio_.c_cc[VTIME]=0;
+
+    tcflush(ser_, TCIFLUSH);
+    tcsetattr(ser_,TCSANOW,&tio_);
+
+    return DEV_SUCCESS;
+     
+}
+
+int SerialDevice::poll(unsigned char* buff)
+{
+    ssize_t len=0;
+    len = read(ser_, buff, MAX_BYTES);
+    return len;
+}
+
+int SerialDevice::cleanup()
+{
+    tcsetattr(ser_,TCSANOW,&oldtio_);
+    return 0;
+}
+
+speed_t SerialDevice::get_baud_(int baud)
+{
+    switch(baud) {
+        case 0:
+            return B0;
+            break;
+        case 50:
+            return B50;
+            break;
+        case 75:
+            return B75;
+            break;
+        case 110:
+            return B110;
+            break;
+        case 9600:
+            return B9600;
+            break;
+        case 19200:
+            return B19200;
+            break;
+        case 38400:
+            return B38400;
+            break;
+        case 57600:
+            return B57600;
+            break;
+        case 115200:
+            return B115200;
+            break;
+        case 230400:
+            return B230400;
+            break;
+        default:
+            fprintf(stderr, "Error: Unknown baudrate %d\n", baud);
+            exit(DEVERR_UNKNOWN_BAUD);
+    }
+
+}
+
+void SerialDevice::signal_handler_(int status)
+{
+    incoming_ = true;
+}
+
 
 /**
  * NOTE: Used internally. Not likely used by client programmer.
@@ -156,7 +263,7 @@ int USBDevice::bulk_get(unsigned char * buffer, int bufferLength)
 
 int USBDevice::bulk_send(unsigned char * buffer, int bufferLength)
 {
-    int numBytes = 0, error = 0;
+    int numBytes = 0, error=0;
     
     error = libusb_bulk_transfer(device_, (outEndpoint_ | LIBUSB_ENDPOINT_OUT), buffer, bufferLength, &numBytes, 2);
     
@@ -168,29 +275,8 @@ void USBDevice::set_vendor_id(int id)
     vendorID_ = id;
 }
 
-int USBDevice::read_device(unsigned char* str)
+int USBDevice::poll(unsigned char* str)
 {
     return bulk_get(str, INPUT_BUFFER_LEN);
 }
 
-/***************** Expose to Python **************************/
-#ifdef __PYTHONIFY__
-
-BOOST_PYTHON_MODULE(DeviceBackend)
-{
-
-    enum_<DeviceErrors>("DeviceErrors")
-        .value("DEV_SUCCESS", DEV_SUCCESS)
-        .value("DEVERR_NOT_FOUND", DEVERR_NOT_FOUND)
-    ;
-    class_<USBDevice>("USBDevice")
-        .def("setup", &USBDevice::setup)
-        .def("read_device", &USBDevice::read_device)
-        .def("bulk_get", &USBDevice::bulk_get)
-        .def("bulk_send", &USBDevice::bulk_send)
-        .def("cleanup", &USBDevice::cleanup)
-        .def("set_vendor_id", &USBDevice::set_vendor_id)
-    ;
-}
-
-#endif

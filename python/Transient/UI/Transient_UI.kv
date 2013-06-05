@@ -3,6 +3,7 @@
 # Color definitions
 #:set MAIN_BG [0.064, 0.068, 0.068, 1.0]
 #:set DARK_BG [0.13, 0.135, 0.135, 1.0]
+#:set DARKER_BG [0.075, 0.08, 0.085, 1.0]
 #:set HEADER_BG [0.16, 0.165, 0.165, 1.0]
 #:set AXES_BG [0.1, 0.105, 0.105, 1]
 #:set OUTLINE [0.175,0.175,0.175,1.0]
@@ -16,7 +17,7 @@
 #:set HEADER_HEIGHT 26
 #:set PADDING 5.0
 
-<test_rect>:
+<MyWidget>:
 	canvas:
 		Color:
 			rgba: 1,0,0,1.0
@@ -62,16 +63,17 @@
 			size: self.width, 24
 			texture: self.gradient
 		Color:
-			rgba: 1,1,1,0.19
-		Line:
-			points: self.pos[0], self.pos[1]+self.height-HEADER_HEIGHT-0.5, self.pos[0] + self.width, self.pos[1]+self.height-HEADER_HEIGHT-0.5
-			width: 0.5
-		Color:
 			rgba: 0,0,0,0.8
 		Line:
-			points: self.pos[0], self.pos[1]+self.height-HEADER_HEIGHT, self.pos[0] + self.width, self.pos[1]+self.height-HEADER_HEIGHT
-			width: 0.5
-
+			points: int(self.pos[0]), int(self.pos[1]+self.height-HEADER_HEIGHT), int(self.pos[0] + self.width), int(self.pos[1]+self.height-HEADER_HEIGHT)
+			width: 1
+		Color:
+			rgba: 1,1,1,0.075
+		Line:
+			points: int(self.pos[0]), int(self.pos[1]+self.height-HEADER_HEIGHT-1), int(self.pos[0] + self.width), int(self.pos[1]+self.height-HEADER_HEIGHT-1)
+			width: 1
+		
+		
 	Label:
 		id: header_label
 		font_size: DAQ_WIDGET_HEADER_PX
@@ -98,6 +100,26 @@
 		#text_size: root.width - 2*PADDING, root.height - 2*PADDING - HEADER_HEIGHT
 		center_x: root.x + root.width/2.0
 		center_y: root.y + root.height/2.0
+
+<PositionTracker>:
+	canvas:
+		Color:
+			rgba: 0,0,0,0.5
+		Rectangle:
+			pos: self.x+3, self.y + 3
+			size: self.width - 6, self.height - HEADER_HEIGHT - 6
+		Color:
+			rgba: DARKER_BG
+		Rectangle:
+			pos: self.x+5, self.y + 5
+			size: self.width - 10, self.height - HEADER_HEIGHT - 10
+<Ball>
+	canvas:
+		Color:
+			rgba: self.color
+		Ellipse:
+			pos: self.pos
+			size: self.size
 
 <PointDisplay>:
 	x_label: 'NAN'
