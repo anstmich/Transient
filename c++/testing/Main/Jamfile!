@@ -1,6 +1,0 @@
-subproject ./ ;
-
-SEARCH on python.jam = $(BOOST_BUILD_PATH) ;
-include python.jam ;
-
-extension Parsing: Parsing.cpp

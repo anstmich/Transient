@@ -1,4 +1,6 @@
-#include <boost/thread.hpp>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 #ifndef __RPI_H__
 #define __RPI_H__
@@ -26,9 +28,9 @@ class RPI
         int rsize_;
         bool updated_;
 
-        boost::mutex res_mtx_;
-        boost::mutex update_flag_mtx_;
-        boost::condition_variable update_cond_;
+        std::mutex res_mtx_;
+        std::mutex update_flag_mtx_;
+        std::condition_variable update_cond_;
             
 };
 

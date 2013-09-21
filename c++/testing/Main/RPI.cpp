@@ -33,7 +33,7 @@ bool RPI::updated()
 
 void RPI::wait_until_updated()
 {
-    boost::unique_lock<boost::mutex> lock(res_mtx_);
+    std::unique_lock<std::mutex> lock(res_mtx_);
     while(!updated_)
         update_cond_.wait(lock);
 

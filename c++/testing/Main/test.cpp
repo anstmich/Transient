@@ -7,7 +7,7 @@ int main()
     unsigned char buffer[1024];
     RPI res;
     res.set_res(buffer);
-    SerialDevice sd("/dev/pts/3", 115200);
+    SerialDevice sd("/dev/pts/5", 115200);
     AsciiParser parse;
 
     parse.add_token(DOUBLE, "time", ",");

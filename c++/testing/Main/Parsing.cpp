@@ -4,13 +4,6 @@
 #include <cstring>
 #include <stdint.h>
 
-//#define __PYTHONIFY__
-
-#ifdef __PYTHONIFY__
-#include <boost/python.hpp>
-using namespace boost::python;
-#endif
-
 /******************** Parser Definitions *********************/
 
 ValueTypeList Parser::expose_structure()
@@ -134,7 +127,7 @@ unsigned char Parser::get_uchar(std::string name)
 int AsciiParser::add_token(int type, std::string name, std::string delimiter)
 {
 	int err;
-	boost::shared_ptr<ParseToken> tok = boost::shared_ptr<ParseToken>(new ParseToken());
+	std::shared_ptr<ParseToken> tok = std::shared_ptr<ParseToken>(new ParseToken());
 	tok->type = type;
 	tok->name = name;
 	tok->delimiter = delimiter[0]; // for now, only single character delimiters are supported
@@ -213,32 +206,3 @@ int AsciiParser::parse(unsigned char* str, int slen)
 
 	return PARSER_SUCCESS;
 }
-
-/****************** Expose AsciiParser to Python *******************/
-#ifdef __PYTHONIFY__
-BOOST_PYTHON_MODULE(Parsing)
-{
-	class_<ParseToken>("ParseToken");
-	enum_<DataTypes>("DataTypes")
-		.value("SHORT", SHORT)
-		.value("LONG", LONG)
-		.value("INT", INT)
-		.value("USHORT", USHORT)
-		.value("ULONG", ULONG)
-		.value("UINT", UINT)
-		.value("UCHAR", UCHAR)
-		.value("CHAR", CHAR)
-		.value("DOUBLE", DOUBLE)
-		.value("FLOAT", FLOAT)
-		.value("STRING", STRING)
-		.value("NUMBER", NUMBER) // number is a generic type to be determined by the front end
-	;
-	class_<AsciiParser, bases<Parser> >("AsciiParser")
-		.def("add_token", &AsciiParser::add_token)
-		.def("parse", &AsciiParser::parse)
-		.def("get_double", &AsciiParser::get_double)
-		.def("get_int", &AsciiParser::get_int)
-		.def("get_uchar", &AsciiParser::get_uchar)
-	;
-}
-#endif

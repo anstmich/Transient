@@ -1,7 +1,7 @@
 #include <map> 
 #include <string>
 #include <list>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifndef __PARSING_H__
 #define __PARSING_H__
@@ -84,7 +84,7 @@ public:
 private:
 	std::string format;
 
-	typedef std::list<boost::shared_ptr<ParseToken> > TokenList;
+	typedef std::list<std::shared_ptr<ParseToken> > TokenList;
 	TokenList parse_tokens_;
 
 };

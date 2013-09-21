@@ -32,6 +32,8 @@ class Device
 public:
 	virtual int setup() = 0;
 	virtual int poll(unsigned char* str) = 0;
+	virtual int send(const unsigned char* buff, int len) = 0;
+	//virtual int send_async(const unsigned char* buff, int len, int timeout);
 	virtual int cleanup() = 0;
 };
 
@@ -44,6 +46,7 @@ class SerialDevice : public Device
         virtual int setup();
         int setup(const char* port, int baud);
         virtual int poll(unsigned char* buff);
+		virtual int send(const unsigned char* buff, int len);
         virtual int cleanup();
 
         const static int MAX_BYTES = 1024;
@@ -70,6 +73,7 @@ public:
 	int setup();
 	//int setup(int vendorID);
 	int poll(unsigned char* str);
+	virtual int send(const unsigned char* buff, int len);
 	int bulk_get(unsigned char * buffer, int bufferLength);
 	int bulk_send(unsigned char * buffer, int bufferLength);
 	int cleanup();
