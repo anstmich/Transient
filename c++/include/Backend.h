@@ -23,6 +23,8 @@ class HardwareLayer
         void enable();
         void disable();
 
+		int send(unsigned char* buff, int len);
+
     private:
         Device* dev_;
         RPI* rpi_;
@@ -87,6 +89,8 @@ class Backend
         void get_doubles(std::string s, boost::python::list l);
         void get_uchars(std::string s, boost::python::list l);
         void get_ints(std::string s, boost::python::list l);
+
+		void send(std::string s);
 
     private:
         boost::thread pp_thread_;

@@ -17,6 +17,7 @@ BOOST_PYTHON_MODULE(Backend)
         .def("get_doubles", &Backend::get_doubles)
         .def("get_ints", &Backend::get_ints)
         .def("get_uchars", &Backend::get_uchars)
+		.def("send", &Backend::send)
     ;
     class_<ParseToken>("ParseToken");
 	enum_<DataTypes>("DataTypes")
@@ -52,6 +53,7 @@ BOOST_PYTHON_MODULE(Backend)
     class_< Device, boost::noncopyable>("Device", no_init);
     class_<SerialDevice, bases<Device> >("SerialDevice")
         .def(init<const char*, int>())
+		.def("send", &SerialDevice::send)
     ;
     class_<USBDevice, bases<Device> >("USBDevice")
         .def("setup", &USBDevice::setup)

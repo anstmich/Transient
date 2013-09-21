@@ -74,6 +74,13 @@ int SerialDevice::poll(unsigned char* buff)
     return len;
 }
 
+int SerialDevice::send(const unsigned char* buff, int len)
+{
+	int err = 0;
+	err = write(ser_, buff, len);
+	return err;
+}
+
 int SerialDevice::cleanup()
 {
     tcsetattr(ser_,TCSANOW,&oldtio_);
@@ -280,3 +287,7 @@ int USBDevice::poll(unsigned char* str)
     return bulk_get(str, INPUT_BUFFER_LEN);
 }
 
+int USBDevice::send(const unsigned char* buff, int len)
+{
+	return 0;
+}

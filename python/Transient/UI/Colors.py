@@ -51,3 +51,35 @@ class ColorQueue:
 	def to_beginning(self):
 		self.pos = 0
 
+class CMap:
+
+	def __init__(self, vals):
+
+		self.colors = []
+		self.colors.append((0,0,1.0,1.0))
+		self.colors.append((0,1.0,0,1.0))
+		self.colors.append((1.0,0,0,1.0))
+
+		self.vals = vals
+
+	def get_color(self, v):
+
+		i1 = 0
+		i2 = 0
+
+		if(v < self.vals[0]):
+			return self.colors[0]
+		elif(v >= self.vals[2]):
+			return self.colors[2]
+		elif(v >= self.vals[0] and v < self.vals[1]):
+			i1 = 0
+			i2 = 1
+		elif(v >= self.vals[1] and v < self.vals[2]):
+			i1 = 1
+			i2 = 2
+		else:
+			return (0,0,1.0,1)	
+		
+		c = tuple([(c2 - c1)/(self.vals[i2] - self.vals[i1])*(v - self.vals[i1]) + c1 for c1,c2 in zip(self.colors[i1], self.colors[i2])])
+
+		return c

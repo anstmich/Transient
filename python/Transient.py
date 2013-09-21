@@ -10,6 +10,7 @@ from Transient.UI.DAQWidget import DAQWidget, MyWidget, NumericalDisplay
 from Transient.UI.Container import Stage, Container, BoxContainer
 from Transient.UI.Widgets.PlotWidget import Grid, Plot, PlotBehavior
 from Transient.UI.Widgets.PositionTracker import PositionTracker
+from Transient.UI.Widgets.TextInput import TInput
 from Transient.Backend import SerialDevice, Backend
 from Transient.ParseHelper import AsciiFormat
 from math import sin, cos, pi
@@ -27,42 +28,55 @@ class TransientApp(App):
 	device = None
 
 	def test_num_display(self, dt):
-		self.num += 0.1
-		
-		#self.posTrack.update_pos((1+self.count*0.1)*cos(self.count/(2*pi)), (1+self.count*0.1)*sin(self.count/(2*pi)))
-		self.count += 0.125
-		if(self.count % 250 == 0):
-		    print self.count, Clock.get_rfps()
 
 		lon = []
 		lat = []
 		speed = []
 		erpm = []
-		b1 = []
+		b3 = []
+		time = []
+		wrpm = []
 		TransientApp.backend.get_doubles('long', lon)
 		TransientApp.backend.get_doubles('lat', lat)
 		TransientApp.backend.get_doubles('speed', speed)
 		TransientApp.backend.get_doubles('erpm', erpm)
-		TransientApp.backend.get_doubles('b1', b1)
-		if(len(lon) > 0 and len(lat) > 0 and len(speed) > 0 and len(erpm) > 0 and len(b1) > 0):
-			self.posTrack.update_pos(lon[-1], lat[-1])
+		TransientApp.backend.get_doubles('wrpm', wrpm)
+		TransientApp.backend.get_doubles('b3', b3)
+		TransientApp.backend.get_doubles('utc', time)
+		if(len(lon) > 0 and len(lat) > 0 and len(speed) > 0 and len(erpm) > 0 and len(b3) > 0):
+			spd = speed[-1]
+			self.posTrack.update_pos([lon[-1], lat[-1]], spd)
 			self.erpm.set_value(erpm[-1])
-			self.speed.set_value(speed[-1])
-			self.emerg.set_value(b1[-1])
+			self.speed.set_value(spd)
+			self.emerg.set_value(b3[-1])
+			self.fout.write(str(time[-1]) + ',' + str(spd) + "," + str(erpm[-1]) + "," + str(wrpm[-1]) + "\n")
+			print time[-1], spd, erpm[-1], lon[-1], lat[-1], wrpm[-1]
+
+			if(spd > self.maxspeed):
+				self.maxspeed = spd
+				self.topspeed.set_value(self.maxspeed)
+		
+		if(self.tinp.mqueued):
+			text = self.tinp.get_text()
+			TransientApp.backend.send(str( '$' + text + '&'))
+			self.tinp.mqueued = False
 
 	def build(self):
 		self.count = 0
+		self.maxspeed = 0
+
+		self.fout = open('log.dat', 'w')
 
 		Builder.load_file('python/Transient/UI/Transient_UI.kv')
 		
 		mainlayout = Stage()
 		box1 = BoxContainer(2, orientation='vertical')
-		box2 = BoxContainer(3)
+		box2 = BoxContainer(5)
 
 		button = test_rect()
 
 		box1.set_box_sizes([0.75,0.25])
-		box2.set_box_sizes([0.34,0.33,0.33])
+		box2.set_box_sizes([0.2,0.2,0.2,0.2,0.2])
 
 		self.erpm = NumericalDisplay()
 		self.erpm.header_text = 'Engine RPM'
@@ -82,16 +96,28 @@ class TransientApp(App):
 		self.posTrack = PositionTracker()
 		self.posTrack.header_text = 'GPS Tracking'
 
+		self.topspeed = NumericalDisplay()
+		self.topspeed.header_text = 'Top Speed'
+		self.topspeed.set_units('MPH')
+		self.topspeed.set_value(0)
+
+		self.tinp = TInput()
+		self.tinp.header_text = 'Send a Message'
+
 		box2.add_member(self.speed)
+		box2.add_member(self.topspeed)
 		box2.add_member(self.erpm)
 		box2.add_member(self.emerg)
+		box2.add_member(self.tinp)
 		box1.add_member(self.posTrack)
 		box1.add_member(box2)
 
         # set up  the backend
 		TransientApp.backend = Backend()
-		TransientApp.device = SerialDevice('/dev/pts/5', 115200)
-		tp = AsciiFormat('<START=$><time=NUMBER>,<long=NUMBER>,<longdir=UCHAR>,<lat=NUMBER>,<latdir=UCHAR>,<hdop=NUMBER>,<statud=UCHAR>,<speed=NUMBER>,<heading=NUMBER>,<erpm=NUMBER>,<wrpm=NUMBER>,<b1=NUMBER>,<b2=NUMBER>,<b3=NUMBER><END=\n>') 
+		TransientApp.device = SerialDevice('/dev/pts/5', 9600)
+		tp = AsciiFormat('<START=$><utc=NUMBER>,<long=NUMBER>,<longdir=UCHAR>, \
+				<lat=NUMBER>,<latdir=UCHAR>,<hdop=NUMBER>,<status=UCHAR>,<speed=NUMBER>, \
+				<heading=NUMBER>,<erpm=NUMBER>, <wrpm=NUMBER>,<b1=NUMBER>,<b2=NUMBER>,<b3=NUMBER><END=\n>')  
 		TransientApp.parser = tp.parser
 
 		TransientApp.backend.set_parser(TransientApp.parser)
@@ -100,7 +126,7 @@ class TransientApp(App):
 		mainlayout.add_container(box1)
 		self.num = 0
 		
-		Clock.schedule_interval(self.test_num_display, 1.0/2.0)
+		Clock.schedule_interval(self.test_num_display, 1.0/4.0)
 
 		# start the backend
 		TransientApp.backend.start()
@@ -117,10 +143,11 @@ if __name__ == "__main__":
 	#Config.set('graphics', 'width', disp_w)
 	#Config.set('graphics', 'height', disp_h)
 	#Config.set('graphics', 'fullscreen', 'auto') # auto seems broken with gnome 3
-	Config.set('graphics', 'fullscreen', 'False')
+	Config.set('graphics', 'fullscreen', 'off')
 	Config.set('graphics', 'multisamples', '8')
 	transient = TransientApp()
 
 	transient.run()
 	transient.backend.stop()
+	transient.fout.close()
 	#transient.backend.finish()

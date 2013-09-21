@@ -54,6 +54,11 @@ void HardwareLayer::disable()
     
 }
 
+int HardwareLayer::send(unsigned char* buff, int len)
+{
+	dev_->send(buff, len);
+}
+
 /********* Post Processing Layer ********************/
 PostProcLayer::PostProcLayer()
 {
@@ -171,3 +176,9 @@ void Backend::get_ints(std::string s, boost::python::list l)
     pp_layer_.get_int(s,l);
 }
 
+void Backend::send(std::string s)
+{
+	unsigned char* buff = (unsigned char*)&s.c_str()[0];
+	hw_layer_.send(buff, s.size());
+	
+}
