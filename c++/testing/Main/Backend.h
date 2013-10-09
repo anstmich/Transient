@@ -23,6 +23,8 @@ class HardwareLayer
         void enable();
         void disable();
 
+		int send(unsigned char* buff, int len);
+
     private:
         Device* dev_;
         RPI* rpi_;
@@ -40,18 +42,19 @@ class PostProcLayer
         PostProcLayer(RPI* rpi, Parser* p);
         void operator()();
 
-        void get_doubles(std::string& s, boost::python::list& l);
-        void get_uchar(std::string& s, boost::python::list& l);
-        void get_int(std::string& s, boost::python::list& l);
+        void get_doubles(std::string s, boost::python::list l);
+        void get_uchar(std::string s, boost::python::list l);
+        void get_int(std::string s, boost::python::list l);
 
     protected:
         template<class T>
-        void transfer(std::deque<T> buff, boost::python::list l) {
+        void transfer(std::deque<T>& buff, boost::python::list l) {
             int size = buff.size();
 
-            for(int i = 0; i < size; i++)
+            for(int i = 0; i < size; i++) {
                 l.append(buff.front());
                 buff.pop_front();
+            }
         }
 
     private:
@@ -83,9 +86,11 @@ class Backend
         void stop();
         void finish();
 
-        void get_doubles(std::string& s, boost::python::list& l);
-        void get_uchars(std::string& s, boost::python::list& l);
-        void get_ints(std::string& s, boost::python::list& l);
+        void get_doubles(std::string s, boost::python::list l);
+        void get_uchars(std::string s, boost::python::list l);
+        void get_ints(std::string s, boost::python::list l);
+
+		void send(std::string s);
 
     private:
         boost::thread pp_thread_;

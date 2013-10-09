@@ -12,13 +12,6 @@
 #include <libusb-1.0/libusb.h>
 #include "Device.h"
 
-#define __PYTHONIFY__
-
-#ifdef __PYTHONIFY__
-#include <boost/python.hpp>
-using namespace boost::python;
-#endif
-
 /******** Empty Device implementations *********/
 
 bool SerialDevice::incoming_;
@@ -48,28 +41,16 @@ int SerialDevice::setup()
 int SerialDevice::setup(const char* port, int baud)
 {
     // set up nonblocking readwrite transfer
-    ser_ = open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+    ser_ = open(port, O_RDWR | O_NOCTTY);
 
     if(ser_ < 0) {
         perror(port);
         exit(DEVERR_FAILED_TO_OPEN);
     }
     
-    // set up signal (interrupt) handler
-    saio_.sa_handler = SerialDevice::signal_handler_;
-    //saio.sa_mask = 0; // not sure what this is for, but doesnt work
-    saio_.sa_flags = 0;
-    saio_.sa_restorer = NULL;
-    sigaction(SIGIO,&saio_,NULL);
-
-    // allow the process to receive interrupts
-    fcntl(ser_, F_SETOWN, getpid());
-
-    // make it asynchronous
-    fcntl(ser_, F_SETFL, FASYNC);
-    
     // save current port settings to be restored upon completion
     tcgetattr(ser_,&oldtio_); 
+    bzero(&tio_, sizeof(tio_));
 
     // set up the new port attributes 
     tio_.c_cflag = get_baud_(baud) | CRTSCTS | CS8 | CLOCAL | CREAD;
@@ -78,6 +59,7 @@ int SerialDevice::setup(const char* port, int baud)
     tio_.c_lflag = ICANON;
     tio_.c_cc[VMIN]=1;
     tio_.c_cc[VTIME]=0;
+
     tcflush(ser_, TCIFLUSH);
     tcsetattr(ser_,TCSANOW,&tio_);
 
@@ -88,14 +70,15 @@ int SerialDevice::setup(const char* port, int baud)
 int SerialDevice::poll(unsigned char* buff)
 {
     ssize_t len=0;
-    if(incoming_) {
-        len = read(ser_, buff, MAX_BYTES);
-        // if multiple ports are open, dont want to prevent another from getting the interrupt
-        if(len >= 0)
-            incoming_ = false;
-    }
-
+    len = read(ser_, buff, MAX_BYTES);
     return len;
+}
+
+int SerialDevice::send(const unsigned char* buff, int len)
+{
+	int err = 0;
+	err = write(ser_, buff, len);
+	return err;
 }
 
 int SerialDevice::cleanup()
@@ -304,27 +287,7 @@ int USBDevice::poll(unsigned char* str)
     return bulk_get(str, INPUT_BUFFER_LEN);
 }
 
-/***************** Expose to Python **************************/
-#ifdef __PYTHONIFY__
-
-BOOST_PYTHON_MODULE(Device)
+int USBDevice::send(const unsigned char* buff, int len)
 {
-
-    enum_<DeviceErrors>("DeviceErrors")
-        .value("DEV_SUCCESS", DEV_SUCCESS)
-        .value("DEVERR_NOT_FOUND", DEVERR_NOT_FOUND)
-    ;
-    class_<SerialDevice, bases<Device> >("SerialDevice")
-        .def(init<const char*, int>())
-    ;
-    class_<USBDevice, bases<Device> >("USBDevice")
-        .def("setup", &USBDevice::setup)
-        .def("poll", &USBDevice::poll)
-        .def("bulk_get", &USBDevice::bulk_get)
-        .def("bulk_send", &USBDevice::bulk_send)
-        .def("cleanup", &USBDevice::cleanup)
-        .def("set_vendor_id", &USBDevice::set_vendor_id)
-    ;
+	return 0;
 }
-
-#endif

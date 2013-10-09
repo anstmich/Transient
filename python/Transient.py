@@ -8,7 +8,7 @@ from kivy.graphics import Rectangle
 
 from Transient.UI.DAQWidget import DAQWidget, MyWidget, NumericalDisplay
 from Transient.UI.Container import Stage, Container, BoxContainer
-from Transient.UI.Widgets.PlotWidget import Grid, Plot, PlotBehavior
+from Transient.UI.Widgets.PlotWidget import Plot
 from Transient.UI.Widgets.PositionTracker import PositionTracker
 from Transient.UI.Widgets.TextInput import TInput
 from Transient.Backend import SerialDevice, Backend
@@ -45,7 +45,7 @@ class TransientApp(App):
 		TransientApp.backend.get_doubles('utc', time)
 		if(len(lon) > 0 and len(lat) > 0 and len(speed) > 0 and len(erpm) > 0 and len(b3) > 0):
 			spd = speed[-1]
-			self.posTrack.update_pos([lon[-1], lat[-1]], spd)
+			#self.posTrack.update_pos([lon[-1], lat[-1]], spd)
 			self.erpm.set_value(erpm[-1])
 			self.speed.set_value(spd)
 			self.emerg.set_value(b3[-1])
@@ -93,9 +93,9 @@ class TransientApp(App):
 		self.emerg.set_units('State')
 		self.emerg.set_value(0)
 
-		self.posTrack = PositionTracker()
-		self.posTrack.header_text = 'GPS Tracking'
-
+		#self.posTrack = PositionTracker()
+		#self.posTrack.header_text = 'GPS Tracking'
+		self.plot = Plot()
 		self.topspeed = NumericalDisplay()
 		self.topspeed.header_text = 'Top Speed'
 		self.topspeed.set_units('MPH')
@@ -109,7 +109,7 @@ class TransientApp(App):
 		box2.add_member(self.erpm)
 		box2.add_member(self.emerg)
 		box2.add_member(self.tinp)
-		box1.add_member(self.posTrack)
+		box1.add_member(self.plot)
 		box1.add_member(box2)
 
         # set up  the backend

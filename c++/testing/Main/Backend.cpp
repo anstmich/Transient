@@ -14,10 +14,16 @@ HardwareLayer::HardwareLayer(Device* dev, RPI* res)
 
 void HardwareLayer::operator()()
 {
-    int len;
+    int len=0;
     while(true) {
         if(active_) {
-            len = dev_->poll(buffer_);
+            
+            while(len == 0)
+                len = dev_->poll(buffer_);
+
+            while(buffer_[len-1] != '\n') {
+                len += dev_->poll(buffer_+len);
+            }
             
             if(len > 0) {   
                 rpi_->begin_res_update();
@@ -25,7 +31,9 @@ void HardwareLayer::operator()()
                 memcpy(resource_, buffer_, len); 
                 rpi_->set_res_size(len);
                 rpi_->end_res_update();
-            } 
+            }
+            
+            len = 0; 
         }
 
         //sleep 1 us to avoid 100% cpu -- TODO: Find better alternative
@@ -44,6 +52,11 @@ void HardwareLayer::disable()
     active_ = false;
     dev_->cleanup();
     
+}
+
+int HardwareLayer::send(unsigned char* buff, int len)
+{
+	dev_->send(buff, len);
 }
 
 /********* Post Processing Layer ********************/
@@ -71,7 +84,7 @@ void PostProcLayer::operator()()
         dlen_ = rpi_->get_res_size();
         memcpy(data_, res_, dlen_);
         data_[dlen_++] = 0;
-
+        
         status = parser_->parse(data_, dlen_);
 
         // buffer the parsed values
@@ -92,22 +105,21 @@ void PostProcLayer::operator()()
             }
 
             qlen_++;
-            std::cout << qlen_ << "\n";
         }
     }  
 }
 
-void PostProcLayer::get_doubles(std::string& s, boost::python::list& l)
+void PostProcLayer::get_doubles(std::string s, boost::python::list l)
 {
     transfer<double>(double_buffer_[s], l);
 }
 
-void PostProcLayer::get_uchar(std::string& s, boost::python::list& l)
+void PostProcLayer::get_uchar(std::string s, boost::python::list l)
 {
     transfer<unsigned char>(uchar_buffer_[s], l);
 }
 
-void PostProcLayer::get_int(std::string& s, boost::python::list& l)
+void PostProcLayer::get_int(std::string s, boost::python::list l)
 {
     transfer<int>(int_buffer_[s], l);
 }
@@ -149,32 +161,24 @@ void Backend::finish()
     pp_thread_.join();
 }
 
-void Backend::get_doubles(std::string& s, boost::python::list& l)
+void Backend::get_doubles(std::string s, boost::python::list l)
 {
     pp_layer_.get_doubles(s, l);
 }
 
-void Backend::get_uchars(std::string& s, boost::python::list& l)
+void Backend::get_uchars(std::string s, boost::python::list l)
 {
     pp_layer_.get_uchar(s,l);
 }
 
-void Backend::get_ints(std::string& s, boost::python::list& l)
+void Backend::get_ints(std::string s, boost::python::list l)
 {
     pp_layer_.get_int(s,l);
 }
 
-/********** Expose the Backend to python ***********/
-
-using namespace boost::python;
-
-BOOST_PYTHON_MODULE(Backend)
+void Backend::send(std::string s)
 {
-    class_<Backend,boost::noncopyable>("Backend")
-        .def("set_device", &Backend::set_device)
-        .def("set_parser", &Backend::set_parser)
-        .def("get_doubles", &Backend::get_doubles)
-        .def("get_ints", &Backend::get_ints)
-        .def("get_uchars", &Backend::get_uchars)
-    ;
+	unsigned char* buff = (unsigned char*)&s.c_str()[0];
+	hw_layer_.send(buff, s.size());
+	
 }
